@@ -1,0 +1,1374 @@
+{
+  "name": "Telegram Lead Capture & Consultation Booking Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Telegram Lead Capture & Consultation Booking Bot (V1)\n**Before activating:**\n1. Create the Google Sheet *Telegram Lead Capture CRM* with tabs **Leads** and **Sessions** (exact headers from the guide). Format the Phone and Telegram User ID columns as *Plain text*.\n2. Open the **Config** node and paste your Spreadsheet ID and the owner's Telegram chat ID.\n3. Attach your Telegram credential to the trigger and every Telegram node.\n4. Attach your Google Sheets credential to every Google Sheets node.\n5. Owner must press *Start* on the bot once, otherwise Telegram blocks the owner notification.",
+        "height": 300,
+        "width": 620,
+        "color": 4
+      },
+      "id": "4634988b-a063-4036-a9df-aad7a222c0e5",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### A. Conversation engine\nTrigger -> read message -> load session -> decide next step",
+        "height": 460,
+        "width": 1300,
+        "color": 7
+      },
+      "id": "36b77cc7-3601-4f9e-b7ff-a276d7e68d12",
+      "name": "Section A - Conversation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### B. Submit lead (only after the customer taps Confirm)",
+        "height": 400,
+        "width": 1620,
+        "color": 6
+      },
+      "id": "cf01c49e-8094-47f1-b2d1-427cc72f8175",
+      "name": "Section B - Submit Lead",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "5044f41b-e81b-4d10-b676-9f3a9cc094f8",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        528
+      ],
+      "webhookId": "cb808e7a-a73a-4436-b4aa-c2b6e1484b19",
+      "credentials": {
+        "telegramApi": {
+          "id": "TPHmUW9UaLKXeRVk",
+          "name": "LeadCaptureCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7c3f6cde-1bc3-4596-b298-cf841eef8c76",
+              "name": "sheetId",
+              "value": "190mq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI",
+              "type": "string"
+            },
+            {
+              "id": "3dc39ddf-201a-44a7-86bd-07299aa887a9",
+              "name": "ownerChatId",
+              "value": "7994223291",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "592bbd8d-2d2e-4466-9ac1-efacd8c41f80",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the useful fields out of the raw Telegram update.\n// Works for normal text messages AND for taps on inline buttons (callback_query).\nconst u = $input.first().json;\nconst cb = u.callback_query;\nconst m = cb ? (cb.message || {}) : (u.message || {});\nconst from = cb ? (cb.from || {}) : (m.from || {});\nreturn [{\n  json: {\n    userId: String(from.id || ''),\n    chatId: String((m.chat && m.chat.id) || from.id || ''),\n    username: from.username ? '@' + from.username : '',\n    firstName: from.first_name || '',\n    text: cb ? String(cb.data || '').trim() : (m.text || '').trim(),\n    isButton: !!cb,\n    callbackId: cb ? String(cb.id) : '',\n    updateId: Number(u.update_id || 0)\n  }\n}];"
+      },
+      "id": "f1415d8e-d039-48c4-932d-67f2054fec6d",
+      "name": "Get Message Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "=19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1106879707,
+          "mode": "list",
+          "cachedResultName": "Sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI/edit#gid=1106879707"
+        },
+        "options": {}
+      },
+      "id": "478a0372-b9c9-487b-ace0-0849035758ab",
+      "name": "Get Session",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        736,
+        528
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "awlAoKTkEiwZxRJA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// PROCESS CURRENT INPUT - the state machine.\n// Reads the saved session + the new message, decides the next state and the reply.\nconst msg = $('Get Message Data').first().json;\nconst allRows = $input.all().map(i => i.json).filter(r => r && r['Telegram User ID']);\nallRows.sort((a, b) => String(b['Updated At'] || '').localeCompare(String(a['Updated At'] || '')));\nconst row = allRows[0] || {};\n\n// Telegram sometimes re-delivers updates, and duplicates can slip in.\n// If this update_id was already handled for this user, do nothing.\nconst lastId = Number(row['Last Update ID'] || 0);\nif (msg.updateId && lastId && msg.updateId <= lastId) {\n  return [{ json: { action: 'ignore' } }];\n}\n\nconst SERVICES = [\n  { label: '🌐 Web Design', value: 'Web Design' },\n  { label: '🤖 AI Automation', value: 'AI Automation' },\n  { label: '📊 Data Analysis', value: 'Data Analysis' },\n  { label: '🔐 Cybersecurity', value: 'Cybersecurity' },\n  { label: '🎨 Digital Design', value: 'Digital Design' },\n  { label: '📣 Digital Marketing', value: 'Digital Marketing' },\n  { label: '💻 Web Development', value: 'Web Development' }\n];\n\nconst text = (msg.text || '').trim();\nconst lower = text.toLowerCase();\nconst now = $now.setZone('Africa/Lagos').toFormat('yyyy-MM-dd HH:mm:ss');\n\n// Telegram reads _ * ` [ ] as formatting marks and rejects the message if they are unpaired.\n// Remove them from anything a customer types.\nconst clean = s => String(s).replace(/[_*`\\[\\]]/g, '').trim();\n\nconst state = String(row['State'] || 'START').trim() || 'START';\nconst data = {\n  name: String(row['Name'] || ''),\n  phone: String(row['Phone'] || ''),\n  service: String(row['Service'] || ''),\n  date: String(row['Preferred Date'] || ''),\n  time: String(row['Preferred Time'] || '')\n};\nconst cleared = { name: '', phone: '', service: '', date: '', time: '' };\n\nlet newState = state;\nlet reply = '';\nlet replyType = 'text';   // text | services | confirm\nlet action = 'reply';     // reply | submit\n\nconst GREETINGS = ['hi', 'hello', 'hey', 'start', '/start', 'restart', '/restart'];\nconst WELCOME = \"👋 Hello! Welcome to our business.\\n\\nWe provide professional digital and technology services.\\nI'd like to get a few details from you so we can understand how we can help.\\n\\nWhat is your name?\";\nconst RESTART = \"👋 Welcome!\\nLet's get your consultation request started.\\n\\nWhat is your name?\";\n\nfunction summary(d) {\n  return 'Before we submit your request, here is the information you provided:\\n\\n' +\n    'Name: ' + d.name + '\\nPhone: ' + d.phone + '\\nService: ' + d.service +\n    '\\nPreferred Date: ' + d.date + '\\nPreferred Time: ' + d.time +\n    '\\n\\nIs this information correct?';\n}\n\nfunction cleanPhone(raw) {\n  let p = String(raw).replace(/[\\s\\-().]/g, '');\n  if (!/^\\+?\\d{10,15}$/.test(p)) return null;\n  if (/^\\+?234\\d{10}$/.test(p)) return '0' + p.slice(-10);   // +234801... -> 0801...\n  return p;\n}\n\nif (lower === '/cancel' || lower === 'cancel') {\n  Object.assign(data, cleared);\n  newState = 'START';\n  reply = \"❌ Your current request has been cancelled.\\nWhenever you're ready, send /start to begin again.\";\n} else if (GREETINGS.includes(lower)) {\n  const fresh = state === 'START' || state === 'COMPLETE';\n  Object.assign(data, cleared);\n  newState = 'WAITING_NAME';\n  reply = fresh ? WELCOME : RESTART;\n} else if (msg.isButton && !['WAITING_SERVICE', 'CONFIRMING'].includes(state)) {\n  reply = 'That button is no longer active. Please answer the current question, or send /cancel to stop.';\n} else {\n  switch (state) {\n    case 'WAITING_NAME': {\n      const name = clean(text);\n      if (name.length < 2 || name.length > 60 || text.startsWith('/')) {\n        reply = 'Please enter your name (at least 2 characters).';\n      } else {\n        data.name = name;\n        newState = 'WAITING_PHONE';\n        reply = 'Nice to meet you, ' + name + '!\\nPlease enter your phone number.';\n      }\n      break;\n    }\n\n    case 'WAITING_PHONE': {\n      const phone = cleanPhone(text);\n      if (!phone) {\n        reply = \"That doesn't look like a valid phone number.\\nPlease enter it like 08012345678 or +2348012345678.\";\n      } else {\n        data.phone = phone;\n        newState = 'WAITING_SERVICE';\n        replyType = 'services';\n        reply = 'Thanks!\\nWhich service are you interested in?\\nPlease tap one of the buttons below.';\n      }\n      break;\n    }\n\n    case 'WAITING_SERVICE': {\n      const svc = SERVICES.find(s => lower === s.label.toLowerCase() || lower === s.value.toLowerCase());\n      if (!svc) {\n        replyType = 'services';\n        reply = 'Please choose one of the services using the buttons below.';\n      } else {\n        data.service = svc.value;\n        newState = 'WAITING_DATE';\n        reply = 'Great choice! You selected ' + svc.value + '.\\nWhat date would you prefer for your booking?\\n(For example: October 10)';\n      }\n      break;\n    }\n\n    case 'WAITING_DATE': {\n      const d = clean(text);\n      if (!d || d.length > 50 || text.startsWith('/')) {\n        reply = 'Please enter your preferred date (for example: October 10).';\n      } else {\n        data.date = d;\n        newState = 'WAITING_TIME';\n        reply = 'What time would you prefer?\\n(For example: 2:00 PM)';\n      }\n      break;\n    }\n\n    case 'WAITING_TIME': {\n      const t = clean(text);\n      if (!t || t.length > 50 || text.startsWith('/')) {\n        reply = 'Please enter your preferred time (for example: 2:00 PM).';\n      } else {\n        data.time = t;\n        newState = 'CONFIRMING';\n        replyType = 'confirm';\n        reply = summary(data);\n      }\n      break;\n    }\n\n    case 'CONFIRMING':\n      if (lower.includes('confirm')) {\n        action = 'submit';\n      } else if (lower.includes('edit')) {\n        Object.assign(data, cleared);\n        newState = 'WAITING_NAME';\n        reply = \"No problem, let's start again.\\nWhat is your name?\";\n      } else {\n        replyType = 'confirm';\n        reply = 'Please tap ✅ Confirm or ✏️ Edit.\\n\\n' + summary(data);\n      }\n      break;\n\n    default:   // START, COMPLETE, or anything unknown\n      reply = '👋 Hi! Send /start to begin a consultation request.';\n      break;\n  }\n}\n\nreturn [{\n  json: {\n    action,\n    userId: msg.userId,\n    chatId: msg.chatId,\n    username: msg.username,\n    newState,\n    name: data.name,\n    phone: data.phone,\n    service: data.service,\n    date: data.date,\n    time: data.time,\n    reply,\n    replyType,\n    updatedAt: now,\n    updateId: msg.updateId\n  }\n}];"
+      },
+      "id": "f82e4617-01e2-41d5-b306-7ec07fbdb4ed",
+      "name": "Process Current Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ee943006-a66e-4a12-8acc-e07eaf858ac1",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "submit",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "51792e90-ba0d-4492-bc7a-2dbb05508c09",
+      "name": "Is Submit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7bc337ac-b2a6-4bd9-8eea-db22e2cc5867",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "ignore",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "02756a57-e996-40c0-8363-8e340fba8ae2",
+      "name": "Is Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b6096092-3dee-4501-9bbb-70615d5e9d06",
+                    "leftValue": "={{ $('Process Current Input').first().json.replyType }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6feabaf8-9916-4bfa-bc2d-31e5943eb578",
+                    "leftValue": "={{ $('Process Current Input').first().json.replyType }}",
+                    "rightValue": "services",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "services"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "93da3948-f9e4-43ba-a5d4-8ccc379c8e5b",
+                    "leftValue": "={{ $('Process Current Input').first().json.replyType }}",
+                    "rightValue": "confirm",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "confirm"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b15cd3e4-3e3e-43f7-bea5-d062a70be324",
+      "name": "Reply Type?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1616,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Process Current Input').first().json.chatId }}",
+        "text": "={{ $('Process Current Input').first().json.reply }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "023657c1-1c8b-44e3-8bbd-6da3affc713b",
+      "name": "Send Text",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1856,
+        256
+      ],
+      "webhookId": "68b10737-0447-4dab-b89f-e78dddd28295",
+      "credentials": {
+        "telegramApi": {
+          "id": "TPHmUW9UaLKXeRVk",
+          "name": "LeadCaptureCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Process Current Input').first().json.chatId }}",
+        "text": "={{ $('Process Current Input').first().json.reply }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🌐 Web Design",
+                    "additionalFields": {
+                      "callback_data": "Web Design"
+                    }
+                  },
+                  {
+                    "text": "🤖 AI Automation",
+                    "additionalFields": {
+                      "callback_data": "AI Automation"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📊 Data Analysis",
+                    "additionalFields": {
+                      "callback_data": "Data Analysis"
+                    }
+                  },
+                  {
+                    "text": "🔐 Cybersecurity",
+                    "additionalFields": {
+                      "callback_data": "Cybersecurity"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🎨 Digital Design",
+                    "additionalFields": {
+                      "callback_data": "Digital Design"
+                    }
+                  },
+                  {
+                    "text": "📣 Digital Marketing",
+                    "additionalFields": {
+                      "callback_data": "Digital Marketing"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "💻 Web Development",
+                    "additionalFields": {
+                      "callback_data": "Web Development"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "95182da7-0042-4c92-951e-30424f96e044",
+      "name": "Send Service Buttons",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1856,
+        400
+      ],
+      "webhookId": "437ff1a2-f3b2-425f-a460-78b209c7973d",
+      "credentials": {
+        "telegramApi": {
+          "id": "TPHmUW9UaLKXeRVk",
+          "name": "LeadCaptureCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "=19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "a59af4bc-11a2-4810-a391-727753e799a6",
+      "name": "Check Existing Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1408,
+        832
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "awlAoKTkEiwZxRJA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// DETERMINE NEW OR OLD\n// Compare the last 10 digits of the phone so 0801..., +234801... and 801... all match.\nconst lead = $('Process Current Input').first().json;\nconst rows = $input.all().map(i => i.json).filter(r => r && r['Lead ID']);\n\nconst last10 = p => String(p || '').replace(/\\D/g, '').slice(-10);\nconst target = last10(lead.phone);\nconst isOld = rows.some(r => last10(r['Phone']) === target);\n\n// Highest existing Lead ID number (used by the next node to build LD-00X)\nlet maxNum = 0;\nfor (const r of rows) {\n  const n = parseInt(String(r['Lead ID']).replace(/\\D/g, ''), 10);\n  if (!isNaN(n) && n > maxNum) maxNum = n;\n}\n\nreturn [{ json: { ...lead, leadStatus: isOld ? 'OLD' : 'NEW', maxNum } }];"
+      },
+      "id": "a88e2585-a761-4494-a0df-5613eb54b5f1",
+      "name": "Determine NEW or OLD",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "46037f60-80c8-4c86-8a92-854e3923d4c2",
+              "name": "leadId",
+              "value": "={{ 'LD-' + String(Number($json.maxNum) + 1).padStart(3, '0') }}",
+              "type": "string"
+            },
+            {
+              "id": "fb1cc68e-a39a-4fbb-92a8-6461bfdbb2bf",
+              "name": "submittedAt",
+              "value": "={{ $now.setZone('Africa/Lagos').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "95ae5651-de1c-4745-a108-f0dc3b8ea6fa",
+      "name": "Generate Lead ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "=19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $json.leadId }}",
+            "Submitted At": "={{ $json.submittedAt }}",
+            "Name": "={{ $json.name }}",
+            "Phone": "={{ $json.phone }}",
+            "Telegram User ID": "={{ $json.userId }}",
+            "Telegram Username": "={{ $json.username }}",
+            "Service": "={{ $json.service }}",
+            "Preferred Date": "={{ $json.date }}",
+            "Preferred Time": "={{ $json.time }}",
+            "Lead Status": "={{ $json.leadStatus }}",
+            "Notes": "",
+            "Last Contacted": ""
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submitted At",
+              "displayName": "Submitted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telegram User ID",
+              "displayName": "Telegram User ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telegram Username",
+              "displayName": "Telegram Username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preferred Date",
+              "displayName": "Preferred Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preferred Time",
+              "displayName": "Preferred Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Status",
+              "displayName": "Lead Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Contacted",
+              "displayName": "Last Contacted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "83080c20-fe03-4010-b460-fdf69dfed493",
+      "name": "Save Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2064,
+        832
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "awlAoKTkEiwZxRJA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "=7994223291",
+        "text": "=🔔 {{ $('Generate Lead ID').first().json.leadStatus }} LEAD RECEIVED\n\nLead ID: {{ $('Generate Lead ID').first().json.leadId }}\nName: {{ $('Generate Lead ID').first().json.name }}\nPhone: {{ $('Generate Lead ID').first().json.phone }}\nService: {{ $('Generate Lead ID').first().json.service }}\nPreferred Date: {{ $('Generate Lead ID').first().json.date }}\nPreferred Time: {{ $('Generate Lead ID').first().json.time }}\nLead Status: {{ $('Generate Lead ID').first().json.leadStatus }}\nTelegram Username: {{ $('Generate Lead ID').first().json.username || 'not set' }}\n\nPlease follow up with this customer.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "ed6b20ff-5e07-482c-a1ca-3782969dfb4d",
+      "name": "Notify Owner",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2288,
+        832
+      ],
+      "webhookId": "36e841c9-e377-4191-b745-169e9e31bf10",
+      "credentials": {
+        "telegramApi": {
+          "id": "TPHmUW9UaLKXeRVk",
+          "name": "LeadCaptureCRM"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "=19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1106879707,
+          "mode": "list",
+          "cachedResultName": "Sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI/edit#gid=1106879707"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Telegram User ID": "={{ $('Generate Lead ID').first().json.userId }}",
+            "State": "COMPLETE",
+            "Name": "",
+            "Phone": "",
+            "Service": "",
+            "Preferred Date": "",
+            "Preferred Time": "",
+            "Updated At": "={{ $now.setZone('Africa/Lagos').toFormat('yyyy-MM-dd HH:mm:ss') }}",
+            "Last Update ID": "={{ $('Generate Lead ID').first().json.updateId }}"
+          },
+          "matchingColumns": [
+            "Telegram User ID"
+          ],
+          "schema": [
+            {
+              "id": "Telegram User ID",
+              "displayName": "Telegram User ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "State",
+              "displayName": "State",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preferred Date",
+              "displayName": "Preferred Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preferred Time",
+              "displayName": "Preferred Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Update ID",
+              "displayName": "Last Update ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ad6d5da9-bdc4-479f-af55-44f533e47735",
+      "name": "Clear Session",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2496,
+        832
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "awlAoKTkEiwZxRJA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Generate Lead ID').first().json.chatId }}",
+        "text": "=✅ Your request has been successfully submitted!\n\nHere are your details:\nName: {{ $('Generate Lead ID').first().json.name }}\nService: {{ $('Generate Lead ID').first().json.service }}\nPreferred Date: {{ $('Generate Lead ID').first().json.date }}\nPreferred Time: {{ $('Generate Lead ID').first().json.time }}\n\nThank you for contacting us.\nOur team will review your request and contact you to confirm the consultation.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "f07c5dfe-26a5-4d74-9f3e-5e6077b301d0",
+      "name": "Confirm Customer",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2720,
+        832
+      ],
+      "webhookId": "3b97863f-df5f-484c-9492-9266c78d1a13",
+      "credentials": {
+        "telegramApi": {
+          "id": "TPHmUW9UaLKXeRVk",
+          "name": "LeadCaptureCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Get Message Data').first().json.chatId }}",
+        "text": "Sorry, we couldn't complete your request right now. Please try again shortly.\n\nYour answers are still here - reply \"Confirm\" to try again, or send /cancel to stop.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "503d1b08-525e-4fe8-9114-350289f3ada5",
+      "name": "Send Failure Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1840,
+        1008
+      ],
+      "webhookId": "a07b826c-05a4-4531-8dc1-eb0ff9ea7062",
+      "credentials": {
+        "telegramApi": {
+          "id": "TPHmUW9UaLKXeRVk",
+          "name": "LeadCaptureCRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bf15684a-e477-448e-a197-3dd607e91761",
+              "leftValue": "={{ String($json.isButton) }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b57561d6-ec22-472a-8a0d-136ad371b7da",
+      "name": "Is Button Tap?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $json.callbackId }}",
+        "additionalFields": {}
+      },
+      "id": "3e38b4d0-d116-427e-b81e-72e5acf1547d",
+      "name": "Answer Button Tap",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        368
+      ],
+      "webhookId": "c70b4d3f-23a0-4d75-87e5-e7a22fa60219",
+      "credentials": {
+        "telegramApi": {
+          "id": "TPHmUW9UaLKXeRVk",
+          "name": "LeadCaptureCRM"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI",
+          "mode": "list",
+          "cachedResultName": "Telegram Lead Capture CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1106879707,
+          "mode": "list",
+          "cachedResultName": "Sessions",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19Omq1jqW8HgYNG9prxqphFOORWhk0kbG3BZ6a51xQkI/edit#gid=1106879707"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "State": "={{ $json.newState }}",
+            "Name": "={{ $json.name }}",
+            "Phone": "={{ $json.phone }}",
+            "Service": "={{ $json.service }}",
+            "Preferred Date": "={{ $json.date }}",
+            "Updated At": "={{ $json.updatedAt }}",
+            "Preferred Time": "={{ $json.time }}",
+            "Last Update ID": "={{ $json.updateId }}",
+            "Telegram User ID": "={{ $json.userId }}"
+          },
+          "matchingColumns": [
+            "Telegram User ID"
+          ],
+          "schema": [
+            {
+              "id": "Telegram User ID",
+              "displayName": "Telegram User ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "State",
+              "displayName": "State",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preferred Date",
+              "displayName": "Preferred Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preferred Time",
+              "displayName": "Preferred Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Update ID",
+              "displayName": "Last Update ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6c14d5da-5921-40a2-ab8b-0de5a8f1647b",
+      "name": "Update Session1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1440,
+        432
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "awlAoKTkEiwZxRJA",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Process Current Input').first().json.chatId }}",
+        "text": "={{ $('Process Current Input').first().json.reply }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Confirm",
+                    "additionalFields": {
+                      "callback_data": "Confirm"
+                    }
+                  },
+                  {
+                    "text": "✏️ Edit",
+                    "additionalFields": {
+                      "callback_data": "Edit"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "beb48a20-5b9e-4207-a18a-1578bae9749f",
+      "name": "Send Confirm Buttons",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1856,
+        528
+      ],
+      "webhookId": "7a907043-2d94-429d-8797-0de0687108c4",
+      "credentials": {
+        "telegramApi": {
+          "id": "TPHmUW9UaLKXeRVk",
+          "name": "LeadCaptureCRM"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get Message Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Message Data": {
+      "main": [
+        [
+          {
+            "node": "Get Session",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Button Tap?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Button Tap?": {
+      "main": [
+        [
+          {
+            "node": "Answer Button Tap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Session": {
+      "main": [
+        [
+          {
+            "node": "Process Current Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Failure Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Current Input": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Is Submit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Submit?": {
+      "main": [
+        [
+          {
+            "node": "Check Existing Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Session1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Type?": {
+      "main": [
+        [
+          {
+            "node": "Send Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Service Buttons",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Confirm Buttons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Existing Leads": {
+      "main": [
+        [
+          {
+            "node": "Determine NEW or OLD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Failure Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine NEW or OLD": {
+      "main": [
+        [
+          {
+            "node": "Generate Lead ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Lead ID": {
+      "main": [
+        [
+          {
+            "node": "Save Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Lead": {
+      "main": [
+        [
+          {
+            "node": "Notify Owner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Failure Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Owner": {
+      "main": [
+        [
+          {
+            "node": "Clear Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Session": {
+      "main": [
+        [
+          {
+            "node": "Confirm Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Session1": {
+      "main": [
+        [
+          {
+            "node": "Reply Type?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Failure Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "aae9b098-cb36-4187-b885-825e8dbe5814",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0326e1aa341a87e49ac335fffffd8b1eb9e9bb3841e8b999f52d0d65a8a61014"
+  },
+  "nodeGroups": [],
+  "id": "lnaZLuHqin06PYCG",
+  "tags": []
+}
